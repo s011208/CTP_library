@@ -4,10 +4,12 @@ import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -36,23 +38,29 @@ public class CircleProgressbar extends View {
     private boolean mFixedAnimationDirection = false;
 
     private float mAnimatorValue = 0;
-
-    private Paint mProgressbarPaint;
+    private float mRadius;
 
     private final int[] mDefaultColorList = new int[]{Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW};
-
     private int[] mCustomColorList;
-
     private int[] mColorList;
-
-    private final ValueAnimator mDrawAnimator = ValueAnimator.ofFloat(0, mDefaultColorList.length);
-
-    private float mRadius = 200;
 
     private int mPreviousAnimatorValue = -1;
     private int mClipDirection = CLIP_DIRECTION_LEFT_RIGHT;
     private int mAnimatorDuration = ANIMATOR_DURATION_NORMAL;
     private int mDefaultCircleProgressbarSize;
+    private int mTextPaintColor = Color.BLACK;
+    private int mTextMarginTop;
+    private int mTextSize;
+
+    private String mText = null;
+
+    private Paint mProgressbarPaint;
+    private Paint mTextPaint;
+
+    private final Rect mTextBound = new Rect();
+
+    private final ValueAnimator mDrawAnimator = ValueAnimator.ofFloat(0, mDefaultColorList.length);
+
 
     {
         mDrawAnimator.setDuration(mAnimatorDuration);
@@ -110,16 +118,31 @@ public class CircleProgressbar extends View {
     }
 
     private void init(Context context, AttributeSet attrs) {
+        final Resources res = context.getResources();
+        mDefaultCircleProgressbarSize = res.getDimensionPixelSize(R.dimen.circle_progressbar_default_size);
+        mTextMarginTop = res.getDimensionPixelSize(R.dimen.circle_progressbar_text_margin_top);
+        mTextSize = res.getDimensionPixelSize(R.dimen.circle_progressbar_text_size);
         initAttrs(context, attrs);
+        initPaints();
+        setTextBound();
+        if (DEBUG) setKeepScreenOn(true);
+    }
+
+    private void initPaints() {
         mProgressbarPaint = new Paint();
         mProgressbarPaint.setAntiAlias(true);
         mProgressbarPaint.setStyle(Paint.Style.FILL);
-        mDefaultCircleProgressbarSize = context.getResources().getDimensionPixelSize(R.dimen.circle_progressbar_default_size);
-        if (DEBUG)
-            setKeepScreenOn(true);
+
+        mTextPaint = new Paint();
+        mTextPaint.setAntiAlias(true);
+        mTextPaint.setStyle(Paint.Style.FILL);
+        mTextPaint.setColor(mTextPaintColor);
+        mTextPaint.setTextAlign(Paint.Align.CENTER);
+        mTextPaint.setTextSize(mTextSize);
     }
 
     private void initAttrs(Context context, AttributeSet attrs) {
+        if (attrs == null) return;
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
                 R.styleable.CircleProgressbar,
@@ -128,7 +151,10 @@ public class CircleProgressbar extends View {
             mShowText = a.getBoolean(R.styleable.CircleProgressbar_showText, false);
             mIntermediate = a.getBoolean(R.styleable.CircleProgressbar_intermediate, true);
             mFixedAnimationDirection = a.getBoolean(R.styleable.CircleProgressbar_fixAnimationDirection, false);
+            mTextPaintColor = a.getInt(R.styleable.CircleProgressbar_textPaintColor, Color.BLACK);
             mAnimatorDuration = a.getInt(R.styleable.CircleProgressbar_animatorDuration, ANIMATOR_DURATION_NORMAL);
+            mText = a.getString(R.styleable.CircleProgressbar_text);
+
             setAnimatorDuration(mAnimatorDuration);
         } finally {
             a.recycle();
@@ -142,7 +168,9 @@ public class CircleProgressbar extends View {
             Log.d(TAG, "mShowText: " + mShowText);
             Log.d(TAG, "mIntermediate: " + mIntermediate);
             Log.d(TAG, "mFixedAnimationDirection: " + mFixedAnimationDirection);
+            Log.d(TAG, "mTextPaintColor: " + mTextPaintColor);
             Log.d(TAG, "mAnimatorDuration: " + mAnimatorDuration);
+            Log.d(TAG, "mText: " + mText);
         }
     }
 
@@ -191,6 +219,38 @@ public class CircleProgressbar extends View {
         mDrawAnimator.setDuration(mAnimatorDuration);
     }
 
+    public int getTextPaintColor() {
+        return mTextPaintColor;
+    }
+
+    public void setTextPaintColor(int color) {
+        mTextPaintColor = color;
+        mTextPaint.setColor(mTextPaintColor);
+        invalidate();
+    }
+
+    public String getText() {
+        return mText;
+    }
+
+    public void setText(String text) {
+        mText = text;
+        setTextBound();
+        invalidate();
+        requestLayout();
+    }
+
+    public int getTextMarginTop() {
+        return mTextMarginTop;
+    }
+
+    private void setTextBound() {
+        mTextBound.setEmpty();
+        if (mText == null) return;
+        mTextPaint.getTextBounds(mText, 0, mText.length(), mTextBound);
+        if (DEBUG) Log.d(TAG, "text bound: " + mTextBound);
+    }
+
     // Activity life cycle
 
     @Override
@@ -209,13 +269,16 @@ public class CircleProgressbar extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int desiredWidth = mDefaultCircleProgressbarSize;
-        int desiredHeight = mDefaultCircleProgressbarSize;
+        final int desiredWidth = mShowText ? Math.max(mDefaultCircleProgressbarSize, mTextBound.width()) : mDefaultCircleProgressbarSize;
+        final int desiredHeight = mShowText ? mDefaultCircleProgressbarSize + mTextMarginTop + mTextBound.height() : mDefaultCircleProgressbarSize;
+        Log.e(TAG, "mTextBound w: " + mTextBound.width() + ", mTextBound h: " + mTextBound.height());
+        Log.e(TAG, "mDefaultCircleProgressbarSize: " + mDefaultCircleProgressbarSize + ", mTextMarginTop: " + mTextMarginTop
+                + ", mTextBound: " + mTextBound);
 
-        int widthMode = MeasureSpec.getMode(widthMeasureSpec);
-        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+        final int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+        final int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+        final int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        final int heightSize = MeasureSpec.getSize(heightMeasureSpec);
 
         int width;
         int height;
@@ -236,14 +299,10 @@ public class CircleProgressbar extends View {
             height = desiredHeight;
         }
         setMeasuredDimension(width, height);
-    }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        mRadius = Math.min((w - (getPaddingLeft() + getPaddingRight())) / 2,
-                ((h - (getPaddingTop() + getPaddingBottom()))) / 2);
-        if (DEBUG) Log.d(TAG, "onSizeChanged, mRadius: " + mRadius);
+        // custom
+        mRadius = Math.min(Math.min((width - (getPaddingLeft() + getPaddingRight())) / 2,
+                ((height - (getPaddingTop() + getPaddingBottom()))) / 2), mDefaultCircleProgressbarSize);
     }
 
     @Override
@@ -252,8 +311,13 @@ public class CircleProgressbar extends View {
         mColorList = (mCustomColorList == null || mCustomColorList.length == 0) ? mDefaultColorList : mCustomColorList;
         final int intValue = (int) mAnimatorValue % mColorList.length;
         final float floatValue = mAnimatorValue - intValue;
+        final float startX = (canvas.getWidth() / 2 - mRadius);
+        final float startY = ((canvas.getHeight() - (mShowText ? mTextMarginTop : 0)) / 2 - mRadius);
+        if (DEBUG)
+            Log.v(TAG, "mRadius: " + mRadius + ", w: " + canvas.getWidth() + ", h: " + canvas.getHeight() + ", x: " + startX + ", y: " + startY);
         mProgressbarPaint.setColor(mColorList[intValue]);
-        canvas.drawCircle(mRadius, mRadius, mRadius, mProgressbarPaint);
+
+        canvas.drawCircle(startX + mRadius, startY + mRadius, mRadius, mProgressbarPaint);
         mProgressbarPaint.setColor(mColorList[(intValue - 1 + mColorList.length) % mColorList.length]);
         if (!mFixedAnimationDirection) {
             if (mPreviousAnimatorValue != intValue) {
@@ -265,22 +329,28 @@ public class CircleProgressbar extends View {
         canvas.save();
         switch (mClipDirection) {
             case CLIP_DIRECTION_BOTTOM_TOP:
-                canvas.clipRect(0, 0, mRadius * 2, mRadius * 2 * (1 - floatValue));
+                canvas.clipRect(startX, startY, mRadius * 2 + startX, mRadius * 2 * (1 - floatValue) + startY);
                 break;
             case CLIP_DIRECTION_LEFT_RIGHT:
-                canvas.clipRect(mRadius * 2 * floatValue, 0, mRadius * 2, mRadius * 2);
+                canvas.clipRect(mRadius * 2 * floatValue + startX, startY, mRadius * 2 + startX, mRadius * 2 + startY);
                 break;
             case CLIP_DIRECTION_RIGHT_LEFT:
-                canvas.clipRect(0, 0, mRadius * 2 * (1 - floatValue), mRadius * 2);
+                canvas.clipRect(startX, startY, mRadius * 2 * (1 - floatValue) + startX, mRadius * 2 + startY);
                 break;
             case CLIP_DIRECTION_TOP_BOTTOM:
             default:
-                canvas.clipRect(0, mRadius * 2 * floatValue, mRadius * 2, mRadius * 2);
+                canvas.clipRect(startX, mRadius * 2 * floatValue + startY, mRadius * 2 + startX, mRadius * 2 + startY);
                 break;
         }
 
-        canvas.drawCircle(mRadius, mRadius, mRadius, mProgressbarPaint);
+        canvas.drawCircle(startX + mRadius, startY + mRadius, mRadius, mProgressbarPaint);
         canvas.restore();
+
+        if (mShowText) {
+            // align center
+            canvas.drawText(mText, canvas.getWidth() / 2, startY + mRadius * 2 + mTextMarginTop + mTextBound.height() / 2, mTextPaint);
+        }
+
         mPreviousAnimatorValue = intValue;
     }
 }

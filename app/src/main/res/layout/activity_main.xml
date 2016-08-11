@@ -11,11 +11,50 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="yhh.bj4.circletextprogressbar.MainActivity">
 
-    <yhh.bj4.circletextprogressbar.CircleProgressbar
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <yhh.bj4.circletextprogressbar.CircleProgressbar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="4dp"
+            custom:animatorDuration="1000"
+            custom:fixAnimationDirection="false"
+            custom:intermediate="true"
+            custom:showText="false"
+            custom:text="WRAP_CONTENT"
+            custom:textPaintColor="0xff000000" />
+
+        <yhh.bj4.circletextprogressbar.CircleProgressbar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            custom:animatorDuration="1000"
+            custom:fixAnimationDirection="false"
+            custom:intermediate="true"
+            custom:showText="true"
+            custom:text="WRAP_CONTENT"
+            custom:textPaintColor="0xff000000" />
+    </LinearLayout>
+
+    <yhh.bj4.circletextprogressbar.CircleProgressbar
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        custom:animatorDuration="2000"
+        custom:fixAnimationDirection="false"
+        custom:intermediate="true"
+        custom:showText="true"
+        custom:text="200dp"
+        custom:textPaintColor="0xff000000" />
+
+    <yhh.bj4.circletextprogressbar.CircleProgressbar
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         custom:animatorDuration="3000"
         custom:fixAnimationDirection="false"
         custom:intermediate="true"
-        custom:showText="true" />
+        custom:showText="true"
+        custom:text="MATCH_PARENT"
+        custom:textPaintColor="0xff000000" />
 </LinearLayout>
