@@ -21,7 +21,7 @@ import android.view.animation.LinearInterpolator;
  */
 public class CircleProgressbar extends View {
     private static final String TAG = "CircleProgressbar";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     public static final int CLIP_DIRECTION_LEFT_RIGHT = 0;
     public static final int CLIP_DIRECTION_TOP_BOTTOM = 1;
