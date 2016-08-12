@@ -39,6 +39,7 @@ public class CircleProgressbar extends View {
 
     private float mAnimatorValue = 0;
     private float mRadius;
+    private float mMeasuredTextWidth;
 
     private final int[] mDefaultColorList = new int[]{Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW};
     private int[] mCustomColorList;
@@ -51,6 +52,10 @@ public class CircleProgressbar extends View {
     private int mTextPaintColor = Color.BLACK;
     private int mTextMarginTop;
     private int mTextSize;
+    /**
+     * TODO wrong text width workaround
+     */
+    private int mTextHorizontalPadding;
 
     private String mText = null;
 
@@ -60,7 +65,6 @@ public class CircleProgressbar extends View {
     private final Rect mTextBound = new Rect();
 
     private final ValueAnimator mDrawAnimator = ValueAnimator.ofFloat(0, mDefaultColorList.length);
-
 
     {
         mDrawAnimator.setDuration(mAnimatorDuration);
@@ -122,6 +126,7 @@ public class CircleProgressbar extends View {
         mDefaultCircleProgressbarSize = res.getDimensionPixelSize(R.dimen.circle_progressbar_default_size);
         mTextMarginTop = res.getDimensionPixelSize(R.dimen.circle_progressbar_text_margin_top);
         mTextSize = res.getDimensionPixelSize(R.dimen.circle_progressbar_text_size);
+        mTextHorizontalPadding = res.getDimensionPixelSize(R.dimen.circle_progressbar_text_horizontal_padding);
         initAttrs(context, attrs);
         initPaints();
         setTextBound();
@@ -248,7 +253,10 @@ public class CircleProgressbar extends View {
         mTextBound.setEmpty();
         if (mText == null) return;
         mTextPaint.getTextBounds(mText, 0, mText.length(), mTextBound);
-        if (DEBUG) Log.d(TAG, "text bound: " + mTextBound);
+        mMeasuredTextWidth = mTextPaint.measureText(mText);
+        if (DEBUG) {
+            Log.d(TAG, "text bound: " + mTextBound + ", mMeasuredTextWidth: " + mMeasuredTextWidth);
+        }
     }
 
     // Activity life cycle
@@ -269,11 +277,15 @@ public class CircleProgressbar extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        final int desiredWidth = mShowText ? Math.max(mDefaultCircleProgressbarSize, mTextBound.width()) : mDefaultCircleProgressbarSize;
-        final int desiredHeight = mShowText ? mDefaultCircleProgressbarSize + mTextMarginTop + mTextBound.height() : mDefaultCircleProgressbarSize;
-        Log.e(TAG, "mTextBound w: " + mTextBound.width() + ", mTextBound h: " + mTextBound.height());
-        Log.e(TAG, "mDefaultCircleProgressbarSize: " + mDefaultCircleProgressbarSize + ", mTextMarginTop: " + mTextMarginTop
-                + ", mTextBound: " + mTextBound);
+        final int desiredWidth;
+        final int desiredHeight;
+
+        if (mShowText) {
+            desiredWidth = Math.max(mDefaultCircleProgressbarSize, Math.max(mTextBound.width(), Math.round(mMeasuredTextWidth)) + mTextHorizontalPadding * 2);
+            desiredHeight = mDefaultCircleProgressbarSize + mTextMarginTop + mTextBound.height();
+        } else {
+            desiredWidth = desiredHeight = mDefaultCircleProgressbarSize;
+        }
 
         final int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         final int widthSize = MeasureSpec.getSize(widthMeasureSpec);
@@ -299,10 +311,20 @@ public class CircleProgressbar extends View {
             height = desiredHeight;
         }
         setMeasuredDimension(width, height);
+        Log.e(TAG, "width: " + width + ", desiredWidth: " + desiredWidth + ", mDefaultCircleProgressbarSize: " + mDefaultCircleProgressbarSize
+                + ", mTextBound.width(): " + mTextBound.width() + ", mMeasuredTextWidth: " + mMeasuredTextWidth);
 
-        // custom
-        mRadius = Math.min(Math.min((width - (getPaddingLeft() + getPaddingRight())) / 2,
-                ((height - (getPaddingTop() + getPaddingBottom()))) / 2), mDefaultCircleProgressbarSize);
+        float availableWidth, availableHeight;
+        if (mShowText) {
+            availableWidth = width;
+            availableHeight = height - mTextMarginTop * 2 - mTextBound.height();
+        } else {
+            availableWidth = width;
+            availableHeight = height;
+        }
+        availableWidth = availableWidth - getPaddingRight() - getPaddingLeft();
+        availableHeight = availableHeight - getPaddingTop() - getPaddingBottom();
+        mRadius = Math.min(availableWidth, availableHeight) / 2;
     }
 
     @Override
