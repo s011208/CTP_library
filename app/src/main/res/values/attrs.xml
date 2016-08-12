@@ -6,7 +6,6 @@
         <attr name="fixAnimationDirection" format="boolean" />
         <attr name="animatorDuration" format="integer" />
         <attr name="textPaintColor" format="integer" />
-
         <attr name="text" format="string" />
     </declare-styleable>
 </resources>

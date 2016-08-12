@@ -46,7 +46,7 @@
         custom:intermediate="true"
         custom:showText="true"
         custom:text="200dp"
-        custom:textPaintColor="0xff000000" />
+        custom:textPaintColor="0xffff0000" />
 
     <yhh.bj4.circletextprogressbar.CircleProgressbar
         android:layout_width="match_parent"
