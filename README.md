@@ -1,6 +1,6 @@
 # CTP_library - Circle Progress Bar lib
 ## Download
-* [Download aar](https://www.asuswebstorage.com/navigate/s/CF477E034C92419DA1441920C3BFA539Y)
+* [Download aar](https://www.asuswebstorage.com/navigate/s/CF477E034C92419DA1441920C3BFA539Y) (https://bintray.com/s011208/yhh/download_file?file_path=ctp_lib.aar)
 
 ## Usage
 * declare xml namespace ```xmlns:custom="http://schemas.android.com/apk/res-auto"```
